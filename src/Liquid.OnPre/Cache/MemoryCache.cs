@@ -1,34 +1,60 @@
-﻿using Liquid.Runtime;
-using System;
+﻿using System;
 using System.Threading.Tasks;
-using System.Runtime.Caching;
 using Liquid.Runtime.Configuration.Base;
+using Liquid.Interfaces;
+using System.Runtime.Caching;
 
 namespace Liquid.OnWindowsClient
 {
     /// <summary>
     ///  Include support of MemoryCache, that processing data included on Configuration file.
-    /// </summary>
-    public class MemoryCache : LightCache
+    /// </summary>    
+    [Obsolete("Prefer to use the standard IDistributedCache over ILightCache. \n This class wi'll be removed in the next version.")]
+    public class MemoryCache : ILightCache
     {
         /// <summary>
         /// Cache of memory
         /// </summary>
         private static System.Runtime.Caching.MemoryCache Cache = System.Runtime.Caching.MemoryCache.Default;
 
-        private MemoryCacheConfiguration config;
-        private CacheItemPolicy options = null;
+        private MemoryCacheConfiguration _config;
+        //private IDistributedCache _cacheClient = null;
+        //private DistributedCacheEntryOptions _options = null;
+        private CacheItemPolicy _options = null;
 
+        public MemoryCache(MemoryCacheConfiguration configuration)
+        {
+            if (configuration is null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+            Initialize(configuration);
+            _config = configuration;
+        }
+        public MemoryCache()
+        {
+        }
         /// <summary>
         /// Initialize support of Cache and read file config
         /// </summary>
-        public override void Initialize()
+        /// <summary>
+        /// Initialize support of Cache and read file config
+        /// </summary>
+        public void Initialize()
         {
-            config = LightConfigurator.Config<MemoryCacheConfiguration>("MemoryCache");
-            options = new CacheItemPolicy()
+            _config = LightConfigurator.Config<MemoryCacheConfiguration>("MemoryCache");
+           Initialize(_config);
+        }
+        /// <summary>
+        /// Initializes the class based on the provided configuration.
+        /// </summary>
+        /// <param name="configuration">The configuiration for this class.</param>
+        private void Initialize(MemoryCacheConfiguration configuration)
+        {            
+            _options = new CacheItemPolicy()
             {
-                SlidingExpiration = TimeSpan.FromSeconds(config.SlidingExpirationSeconds),
-                AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(config.AbsoluteExpirationRelativeToNowSeconds)
+                SlidingExpiration = TimeSpan.FromSeconds(configuration.SlidingExpirationSeconds),
+                AbsoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(configuration.AbsoluteExpirationRelativeToNowSeconds)
             };
         }
         /// <summary>
@@ -37,7 +63,7 @@ namespace Liquid.OnWindowsClient
         /// <typeparam name="T">Type of object</typeparam>
         /// <param name="key">Key of object</param>
         /// <returns>object</returns>
-        public override T Get<T>(string key)
+        public T Get<T>(string key)
         {
             var data = (T)Cache.Get(key);
             return data;
@@ -48,7 +74,7 @@ namespace Liquid.OnWindowsClient
         /// <typeparam name="T">Type of object</typeparam>
         /// <param name="key">Key of object</param>
         /// <returns>Task with object</returns>
-        public override async Task<T> GetAsync<T>(string key)
+        public async Task<T> GetAsync<T>(string key)
         {
             var data = (T)Cache.Get(key);
             return await Task.FromResult<T>(data);
@@ -57,7 +83,7 @@ namespace Liquid.OnWindowsClient
         /// Refresh key get on the MemoryCache server cache
         /// </summary>
         /// <param name="key">Key of object</param>
-        public override void Refresh(string key)
+        public void Refresh(string key)
         {
             throw new NotImplementedException();
         }
@@ -66,7 +92,7 @@ namespace Liquid.OnWindowsClient
         /// </summary>
         /// <param name="key">Key of object</param>
         /// <returns>Task</returns>
-        public override async Task RefreshAsync(string key)
+        public async Task RefreshAsync(string key)
         {
             throw new NotImplementedException();
         }
@@ -74,7 +100,7 @@ namespace Liquid.OnWindowsClient
         ///  Remove key on the MemoryCache server cache
         /// </summary>
         /// <param name="key">Key of object</param>
-        public override void Remove(string key)
+        public void Remove(string key)
         {
             Cache.Remove(key);
         }
@@ -83,7 +109,7 @@ namespace Liquid.OnWindowsClient
         /// </summary>
         /// <param name="key">Key of object</param>
         /// <returns>Task</returns>
-        public override Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             Cache.Remove(key);
             return Task.FromResult(true);
@@ -94,9 +120,9 @@ namespace Liquid.OnWindowsClient
         /// <typeparam name="T">Type of object</typeparam>
         /// <param name="key">Key of object</param>
         /// <returns>object</returns>
-        public override void Set<T>(string key, T value)
+        public void Set<T>(string key, T value)
         {
-            Cache.Add(key, value, options);
+            Cache.Add(key, value, _options);
         }
         /// <summary>
         /// Set Key and value Async on the MemoryCache server cache
@@ -104,9 +130,10 @@ namespace Liquid.OnWindowsClient
         /// <typeparam name="T">Type of object</typeparam>
         /// <param name="key">Key of object</param>
         /// <returns>Task with object</returns>
-        public override async Task SetAsync<T>(string key, T value)
+        public async Task SetAsync<T>(string key, T value)
         {
-            Cache.Add(key, value, options);
+            Cache.Add(key, value, _options);
+
         }
     }
 }
