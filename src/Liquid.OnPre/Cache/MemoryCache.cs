@@ -18,8 +18,6 @@ namespace Liquid.OnWindowsClient
         private static System.Runtime.Caching.MemoryCache Cache = System.Runtime.Caching.MemoryCache.Default;
 
         private MemoryCacheConfiguration _config;
-        //private IDistributedCache _cacheClient = null;
-        //private DistributedCacheEntryOptions _options = null;
         private CacheItemPolicy _options = null;
 
         public MemoryCache(MemoryCacheConfiguration configuration)
